@@ -182,7 +182,7 @@ Future<Response> _handleProcess(Request request) async {
     print('🔑 Using npub: $npub');
 
     // Run zapstore command with SIGN_WITH environment variable
-    final result = await Process.run('../zapstore-cli/bin/zapstore',
+    final result = await Process.run('zapstore',
         ['publish', '-c', yamlPath, '--indexer-mode', '--overwrite-release'],
         environment: {'SIGN_WITH': npub});
 
