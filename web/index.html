@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>APK Publisher - ZapStore</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: "Times New Roman", Times, serif;
+            background-color: #c0c0c0;
+            background-image: url('data:image/gif;base64,R0lGODlhCgAKAPIAAMLCwvj4+Ojo6Pz8/P///wAAAAAAAAAAACH5BAkAAAYALAAAAAAKAAoAAAMZaLrc/jDKSesYNXvNu/9gKI5kaZ5oqq5sywAAOw==');
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f0f0f0;
+            border: 3px outset #c0c0c0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #000080;
+            text-align: center;
+            font-size: 24px;
+            text-shadow: 2px 2px 0px #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-style: italic;
+            color: #800080;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            border: 2px inset #c0c0c0;
+            padding: 10px;
+            background-color: #e0e0e0;
+        }
+
+        label {
+            font-weight: bold;
+            color: #000080;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        input[type="url"],
+        textarea {
+            width: calc(100% - 20px);
+            padding: 5px;
+            border: 2px inset #c0c0c0;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .button {
+            background-color: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            padding: 8px 16px;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .button:active {
+            border: 2px inset #c0c0c0;
+        }
+
+        .button:disabled {
+            background-color: #808080;
+            color: #c0c0c0;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border: 2px inset #c0c0c0;
+            background-color: #ffffff;
+            min-height: 100px;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: #ff0000;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #008000;
+            font-weight: bold;
+        }
+
+        .spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .marquee {
+            background-color: #000080;
+            color: #ffff00;
+            padding: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .marquee-text {
+            display: inline-block;
+            animation: marquee 15s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% {
+                transform: translateX(100%);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .events-container {
+            background-color: #ffffff;
+            border: 2px inset #c0c0c0;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: "Courier New", monospace;
+            font-size: 11px;
+        }
+
+        .success-fire {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .event-item {
+            background-color: #f0f0f0;
+            border: 1px solid #808080;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+
+        .event-header {
+            font-weight: bold;
+            color: #000080;
+            margin-bottom: 5px;
+            background-color: #e0e0e0;
+            padding: 3px;
+            border: 1px inset #c0c0c0;
+        }
+
+        .event-content {
+            white-space: pre-wrap;
+            word-break: break-all;
+            background-color: #ffffff;
+            padding: 5px;
+            border: 1px inset #c0c0c0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>ZAPSTORE APK PUBLISHER<img src="new.gif"></h1>
+        <div class="subtitle">~ Publishing Android apps to Nostr through the World Wide Web since 2025 ~</div>
+
+        <div class="marquee">
+            <div class="marquee-text">
+                <img src="star.gif" width="40" height="15"> Welcome to the future of decentralized app publishing! <img
+                    src="star.gif" width="40" height="15">
+                Powered by Nostr <img src="rocket.gif" width="20" height="20">
+                Get your NIP-07 extension ready! <img src="star.gif" width="40" height="15">
+            </div>
+        </div>
+
+        <img src="under-construction.gif">
+
+        <h3>For more publishing options, download <a href="https://zapstore.dev/download">Zapstore CLI</a></h2>
+
+            <div id="nostr-status" class="form-group">
+                <label><img src="arrowright.gif" width="20" height="20"> Nostr Connection Status:</label>
+                <div id="nostr-info">Checking for NIP-07 extension...</div>
+                <button id="connect-btn" class="button" onclick="connectNostr()" disabled>
+                    Connect Nostr Extension
+                </button>
+            </div>
+
+            <div id="upload-form" style="display: none;">
+                <div class="form-group">
+                    <label><img src="arrowright.gif" width="20" height="20"> APK URL:</label>
+                    <input type="url" id="apk-url" placeholder="https://example.com/app.apk" style="width: 100%;"
+                        required />
+                </div>
+
+                <div class="form-group">
+                    <label><img src="arrowright.gif" width="20" height="20">App Icon URL:</label>
+                    <input type="url" id="icon-url" placeholder="https://example.com/icon.png" style="width: 100%;"
+                        required />
+                </div>
+
+                <div class="form-group">
+                    <label><img src="arrowright.gif" width="20" height="20">Source Code Repository URL:</label>
+                    <input type="url" id="repository" placeholder="https://github.com/user/repo" style="width: 100%;"
+                        required />
+                </div>
+
+                <div class="form-group">
+                    <label><img src="arrowright.gif" width="20" height="20">Description (Optional, Markdown
+                        allowed):</label>
+                    <textarea id="description" placeholder="Detailed description of your app features and functionality"
+                        style="width: 100%;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label><img src="arrowright.gif" width="20" height="20">License (Optional, as SPDX ID): <a
+                            href="https://spdx.org/licenses/" target="_blank"
+                            style="font-size: 10px; color: #000080;">[SPDX IDs]</a></label>
+                    <input type="text" id="license" placeholder="e.g., MIT, GPL-3.0-or-later, Apache-2.0"
+                        style="width: 100%;" />
+                </div>
+
+                <div style="text-align: center;">
+                    <button id="publish-btn" class="button" onclick="publishApk()">
+                        UPLOAD
+                    </button>
+                </div>
+            </div>
+
+            <div class="spinner" id="loading">
+                <div class="blink"><img src="star.gif" width="30" height="30"> Processing your APK... Please wait...
+                    <img src="star.gif" width="30" height="30">
+                </div>
+            </div>
+
+            <div id="events-section" style="display: none;">
+                <div class="form-group">
+                    <label><img src="arrowright.gif" width="20" height="20"> Review Events Before Signing:</label>
+                    <div id="events-display" class="events-container">
+                        <!-- Events will be populated here -->
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button id="sign-events-btn" class="button" onclick="signAndPublishEvents()">
+                            SIGN EVENTS
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status" id="status">
+                Ready to publish! Connect your Nostr extension to get started.
+
+                <img src="arrowright.gif" width="20" height="20"> Instructions:
+                1. Install a NIP-07 compatible Nostr extension (Alby, nos2x, etc.)
+                2. Connect your extension
+                3. Fill out the form
+                4. Review the generated events
+                5. Click to sign and publish the events!
+            </div>
+
+            <div class="success-fire" id="success-fire">
+                <img src="fire.gif">
+            </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
