@@ -77,7 +77,7 @@ void main() async {
       .addMiddleware(logRequests())
       .addHandler(_router);
 
-  final server = await serve(handler, 'localhost', 8080);
+  final server = await serve(handler, 'localhost', 3335);
   print('🚀 Server running on http://localhost:${server.port}');
   print('📱 APK Publisher ready for retro publishing!');
 }
