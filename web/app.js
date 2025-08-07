@@ -6,7 +6,29 @@ let currentSessionData = null;
 // Check for NIP-07 extension on page load
 document.addEventListener('DOMContentLoaded', function () {
     checkNostrExtension();
+    setupExistingAppCheckbox();
 });
+
+function setupExistingAppCheckbox() {
+    const checkbox = document.getElementById('existing-app-checkbox');
+    const remainingFields = document.getElementById('remaining-fields');
+    
+    if (checkbox && remainingFields) {
+        // Set up event listener for checkbox
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                // Hide remaining fields when checkbox is checked
+                remainingFields.style.display = 'none';
+            } else {
+                // Show remaining fields when checkbox is unchecked
+                remainingFields.style.display = 'block';
+            }
+        });
+        
+        // Ensure fields are visible by default (checkbox is unchecked by default)
+        remainingFields.style.display = 'block';
+    }
+}
 
 async function checkNostrExtension() {
     const statusDiv = document.getElementById('nostr-info');
@@ -87,12 +109,14 @@ async function publishApk() {
     const descriptionInput = document.getElementById('description');
     const licenseInput = document.getElementById('license');
     const publishBtn = document.getElementById('publish-btn');
+    const existingAppCheckbox = document.getElementById('existing-app-checkbox');
 
     const apkUrl = apkUrlInput.value.trim();
     const repositoryUrl = repositoryInput.value.trim();
     const iconUrl = iconUrlInput.value.trim();
     const description = descriptionInput.value.trim();
     const license = licenseInput.value.trim();
+    const isExistingApp = existingAppCheckbox.checked;
 
     // Validate APK URL
     if (!apkUrl) {
@@ -105,26 +129,31 @@ async function publishApk() {
         return;
     }
 
-    // Validate Repository URL
-    if (!repositoryUrl) {
-        updateStatus('ERROR: Please provide a repository URL!');
-        return;
+    // Only validate Repository URL for new apps (existing apps don't need it)
+    if (!isExistingApp) {
+        if (!repositoryUrl) {
+            updateStatus('ERROR: Please provide a repository URL!');
+            return;
+        }
+
+        if (!repositoryUrl.startsWith('http://') && !repositoryUrl.startsWith('https://')) {
+            updateStatus('ERROR: Repository URL must be a valid HTTP/HTTPS URL!');
+            return;
+        }
     }
 
-    if (!repositoryUrl.startsWith('http://') && !repositoryUrl.startsWith('https://')) {
-        updateStatus('ERROR: Repository URL must be a valid HTTP/HTTPS URL!');
-        return;
-    }
+    // Only validate other fields if not publishing to existing app
+    if (!isExistingApp) {
+        // Validate Icon URL
+        if (!iconUrl) {
+            updateStatus('ERROR: Please provide an icon URL!');
+            return;
+        }
 
-    // Validate Icon URL
-    if (!iconUrl) {
-        updateStatus('ERROR: Please provide an icon URL!');
-        return;
-    }
-
-    if (!iconUrl.startsWith('http://') && !iconUrl.startsWith('https://')) {
-        updateStatus('ERROR: Icon URL must be a valid HTTP/HTTPS URL!');
-        return;
+        if (!iconUrl.startsWith('http://') && !iconUrl.startsWith('https://')) {
+            updateStatus('ERROR: Icon URL must be a valid HTTP/HTTPS URL!');
+            return;
+        }
     }
 
     publishBtn.disabled = true;
@@ -136,17 +165,22 @@ async function publishApk() {
         // Create request data
         const requestData = {
             apkUrl: apkUrl,
-            repository: repositoryUrl,
-            iconUrl: iconUrl,
-            npub: userPubkey
+            npub: userPubkey,
+            isExistingApp: isExistingApp
         };
 
-        // Add optional fields if provided
-        if (description) {
-            requestData.description = description;
-        }
-        if (license) {
-            requestData.license = license;
+        // Only add other fields if not publishing to existing app
+        if (!isExistingApp) {
+            requestData.repository = repositoryUrl;
+            requestData.iconUrl = iconUrl;
+            
+            // Add optional fields if provided
+            if (description) {
+                requestData.description = description;
+            }
+            if (license) {
+                requestData.license = license;
+            }
         }
 
         // Send to backend
@@ -304,4 +338,12 @@ function clearFormFields() {
     document.getElementById('icon-url').value = '';
     document.getElementById('description').value = '';
     document.getElementById('license').value = '';
+    
+    // Reset checkbox to unchecked state and show all fields
+    const existingAppCheckbox = document.getElementById('existing-app-checkbox');
+    const remainingFields = document.getElementById('remaining-fields');
+    if (existingAppCheckbox && remainingFields) {
+        existingAppCheckbox.checked = false;
+        remainingFields.style.display = 'block';
+    }
 }

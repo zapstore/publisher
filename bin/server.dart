@@ -111,6 +111,7 @@ Future<Response> _handleProcess(Request request) async {
     final iconUrl = data['iconUrl'] as String?;
     final description = data['description'] as String?;
     final license = data['license'] as String?;
+    final isExistingApp = data['isExistingApp'] as bool? ?? false;
 
     if (apkUrl == null || pubkey == null) {
       return Response.badRequest(
@@ -120,18 +121,21 @@ Future<Response> _handleProcess(Request request) async {
     }
 
     // Validate required fields
-    if (repository == null || repository.isEmpty) {
-      return Response.badRequest(
-        body: jsonEncode({'error': 'Repository URL is required'}),
-        headers: {'content-type': 'application/json'},
-      );
-    }
+    if (!isExistingApp) {
+      // For new apps, repository and icon are required
+      if (repository == null || repository.isEmpty) {
+        return Response.badRequest(
+          body: jsonEncode({'error': 'Repository URL is required'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
 
-    if (iconUrl == null || iconUrl.isEmpty) {
-      return Response.badRequest(
-        body: jsonEncode({'error': 'Icon URL is required'}),
-        headers: {'content-type': 'application/json'},
-      );
+      if (iconUrl == null || iconUrl.isEmpty) {
+        return Response.badRequest(
+          body: jsonEncode({'error': 'Icon URL is required'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
     }
 
     // Validate URL
@@ -174,8 +178,8 @@ Future<Response> _handleProcess(Request request) async {
 
     // Create YAML configuration
     yamlPath = '/tmp/$hashString.yaml';
-    final yamlContent =
-        _createYamlConfig(repository, apkPath, iconUrl, description, license);
+    final yamlContent = _createYamlConfig(
+        repository, apkPath, iconUrl, description, license, isExistingApp);
     await File(yamlPath).writeAsString(yamlContent);
 
     print('⚙️ Running zapstore publish...');
@@ -184,9 +188,19 @@ Future<Response> _handleProcess(Request request) async {
     final npub = hexToNpub(pubkey);
     print('🔑 Using npub: $npub');
 
+    // Build zapstore command arguments
+    final zapstoreArgs = ['publish', '-c', yamlPath, '--indexer-mode'];
+
+    if (isExistingApp) {
+      // For existing apps, add --no-overwrite-app flag
+      zapstoreArgs.add('--no-overwrite-app');
+    } else {
+      // For new apps, add --overwrite-release flag
+      zapstoreArgs.add('--overwrite-release');
+    }
+
     // Run zapstore command with SIGN_WITH environment variable
-    final result = await Process.run('zapstore',
-        ['publish', '-c', yamlPath, '--indexer-mode', '--overwrite-release'],
+    final result = await Process.run('zapstore', zapstoreArgs,
         environment: {'SIGN_WITH': npub});
 
     if (result.exitCode != 0) {
@@ -359,40 +373,31 @@ Future<Response> _handlePublish(Request request) async {
 }
 
 String _createYamlConfig(String? repository, String apkPath, String? iconUrl,
-    String? description, String? license) {
-  final config = <String, dynamic>{
-    'assets': [apkPath],
-  };
-
-  if (repository != null && repository.isNotEmpty) {
-    config['repository'] = repository;
-  }
-  if (iconUrl != null && iconUrl.isNotEmpty) {
-    config['icon'] = iconUrl;
-  }
-  if (description != null && description.isNotEmpty) {
-    config['description'] = description;
-  }
-  if (license != null && license.isNotEmpty) {
-    config['license'] = license;
-  }
-
+    String? description, String? license, bool isExistingApp) {
   // Convert to YAML string manually for simple structure
   final buffer = StringBuffer();
-  if (repository != null && repository.isNotEmpty) {
-    buffer.writeln('repository: "$repository"');
+
+  if (isExistingApp) {
+    // For existing apps, only include assets
+    buffer.writeln('assets:');
+    buffer.writeln('  - "$apkPath"');
+  } else {
+    // For new apps, include all fields
+    if (repository != null && repository.isNotEmpty) {
+      buffer.writeln('repository: "$repository"');
+    }
+    if (iconUrl != null && iconUrl.isNotEmpty) {
+      buffer.writeln('icon: "$iconUrl"');
+    }
+    if (description != null && description.isNotEmpty) {
+      buffer.writeln('description: "$description"');
+    }
+    if (license != null && license.isNotEmpty) {
+      buffer.writeln('license: "$license"');
+    }
+    buffer.writeln('assets:');
+    buffer.writeln('  - "$apkPath"');
   }
-  if (iconUrl != null && iconUrl.isNotEmpty) {
-    buffer.writeln('icon: "$iconUrl"');
-  }
-  if (description != null && description.isNotEmpty) {
-    buffer.writeln('description: "$description"');
-  }
-  if (license != null && license.isNotEmpty) {
-    buffer.writeln('license: "$license"');
-  }
-  buffer.writeln('assets:');
-  buffer.writeln('  - "$apkPath"');
 
   return buffer.toString();
 }
