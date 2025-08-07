@@ -96,6 +96,9 @@ Handler _router = (Request request) {
 };
 
 Future<Response> _handleProcess(Request request) async {
+  String? apkPath;
+  String? yamlPath;
+
   try {
     print('📤 Processing APK from URL...');
 
@@ -161,7 +164,7 @@ Future<Response> _handleProcess(Request request) async {
     // Calculate SHA-256 hash
     final hash = sha256.convert(apkBytes);
     final hashString = hash.toString();
-    final apkPath = '/tmp/$hashString.apk';
+    apkPath = '/tmp/$hashString.apk';
 
     print('💾 Saving APK: $apkPath');
 
@@ -170,7 +173,7 @@ Future<Response> _handleProcess(Request request) async {
     await apkFile.writeAsBytes(apkBytes);
 
     // Create YAML configuration
-    final yamlPath = '/tmp/$hashString.yaml';
+    yamlPath = '/tmp/$hashString.yaml';
     final yamlContent =
         _createYamlConfig(repository, apkPath, iconUrl, description, license);
     await File(yamlPath).writeAsString(yamlContent);
@@ -186,12 +189,7 @@ Future<Response> _handleProcess(Request request) async {
         ['publish', '-c', yamlPath, '--indexer-mode', '--overwrite-release'],
         environment: {'SIGN_WITH': npub});
 
-    // Clean up YAML file
-    await File(yamlPath).delete();
-
     if (result.exitCode != 0) {
-      // Clean up APK file on error
-      await apkFile.delete();
       print('❌ Zapstore command failed:');
       print('Exit code: ${result.exitCode}');
       print('STDOUT: ${result.stdout}');
@@ -211,7 +209,6 @@ Future<Response> _handleProcess(Request request) async {
 
     // Check if output contains failure messages
     if (output.contains('Failure:')) {
-      await apkFile.delete();
       return Response.internalServerError(
         body: jsonEncode({'error': 'zapstore publish failed: $output'}),
         headers: {'content-type': 'application/json'},
@@ -240,7 +237,6 @@ Future<Response> _handleProcess(Request request) async {
         throw Exception('No valid JSON events found in zapstore output');
       }
     } catch (e) {
-      await apkFile.delete();
       return Response.internalServerError(
         body: jsonEncode({'error': 'Failed to parse zapstore output: $e'}),
         headers: {'content-type': 'application/json'},
@@ -274,6 +270,25 @@ Future<Response> _handleProcess(Request request) async {
       body: jsonEncode({'error': 'Processing failed: $e'}),
       headers: {'content-type': 'application/json'},
     );
+  } finally {
+    // Always clean up temporary files
+    print('🧹 Cleaning up temporary files...');
+    if (yamlPath != null) {
+      try {
+        await File(yamlPath).delete();
+        print('✅ Cleaned up YAML file: $yamlPath');
+      } catch (e) {
+        print('⚠️ Failed to delete YAML file: $e');
+      }
+    }
+    if (apkPath != null) {
+      try {
+        await File(apkPath).delete();
+        print('✅ Cleaned up APK file: $apkPath');
+      } catch (e) {
+        print('⚠️ Failed to delete APK file: $e');
+      }
+    }
   }
 }
 
@@ -353,7 +368,7 @@ String _createYamlConfig(String? repository, String apkPath, String? iconUrl,
     config['repository'] = repository;
   }
   if (iconUrl != null && iconUrl.isNotEmpty) {
-    config['iconUrl'] = iconUrl;
+    config['icon'] = iconUrl;
   }
   if (description != null && description.isNotEmpty) {
     config['description'] = description;
@@ -368,7 +383,7 @@ String _createYamlConfig(String? repository, String apkPath, String? iconUrl,
     buffer.writeln('repository: "$repository"');
   }
   if (iconUrl != null && iconUrl.isNotEmpty) {
-    buffer.writeln('iconUrl: "$iconUrl"');
+    buffer.writeln('icon: "$iconUrl"');
   }
   if (description != null && description.isNotEmpty) {
     buffer.writeln('description: "$description"');
