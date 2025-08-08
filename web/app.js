@@ -72,11 +72,29 @@ async function connectNostr() {
         connectBtn.textContent = 'CONNECTED';
         connectBtn.disabled = true;
 
-        // Show upload form
-        uploadForm.style.display = 'block';
-        nostrConnected = true;
+        // Check whitelist with backend before enabling UI
+        updateStatus('CHECKING: Verifying whitelist status...');
+        const wlResp = await fetch('/api/whitelist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ npub: userPubkey })
+        });
 
-        updateStatus(`SUCCESS: Connected to Nostr!\n\nYour pubkey: ${userPubkey}\n\nYou can now upload and publish APK files!`);
+        const wlData = await wlResp.json();
+        if (!wlResp.ok) {
+            throw new Error(wlData.error || 'Whitelist check failed');
+        }
+
+        if (wlData.exists === true) {
+            // Show upload form only if whitelisted
+            uploadForm.style.display = 'block';
+            nostrConnected = true;
+            updateStatus(`SUCCESS: Connected to Nostr!\n\nYour pubkey: ${userPubkey}\n\nWhitelist: OK. You can now publish APK files!`);
+        } else {
+            nostrConnected = false;
+            uploadForm.style.display = 'none';
+            updateStatus('ERROR: Your npub is not whitelisted on the relay. Please contact the admin to be added.');
+        }
 
     } catch (error) {
         console.error('Nostr connection error:', error);

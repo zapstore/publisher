@@ -89,11 +89,41 @@ Handler _router = (Request request) {
     return _handleProcess(request);
   } else if (path.startsWith('api/publish') && request.method == 'POST') {
     return _handlePublish(request);
+  } else if (path.startsWith('api/whitelist') && request.method == 'POST') {
+    return _handleWhitelist(request);
   } else {
     // Serve static files
     return createStaticHandler('web', defaultDocument: 'index.html')(request);
   }
 };
+
+// Check whitelist by calling external script with npub (bech32)
+Future<bool> _isWhitelisted(String hexPubkey) async {
+  try {
+    final npub = hexToNpub(hexPubkey);
+    // Use absolute path per environment preference
+    const scriptPath = 'whitelist.sh';
+    final result = await Process.run(
+      '/bin/bash',
+      [scriptPath, 'exists', npub],
+    );
+
+    final stdoutText = result.stdout?.toString().trim() ?? '';
+    if (stdoutText.isEmpty) {
+      print('⚠️ Whitelist check returned empty output');
+      return false;
+    }
+
+    final decoded = jsonDecode(stdoutText);
+    if (decoded is Map && decoded['exists'] == true) {
+      return true;
+    }
+    return false;
+  } catch (e) {
+    print('❌ Whitelist check error: $e');
+    return false;
+  }
+}
 
 Future<Response> _handleProcess(Request request) async {
   String? apkPath;
@@ -116,6 +146,15 @@ Future<Response> _handleProcess(Request request) async {
     if (apkUrl == null || pubkey == null) {
       return Response.badRequest(
         body: jsonEncode({'error': 'Missing apkUrl or npub'}),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    // Enforce relay whitelist before doing any processing
+    final whitelisted = await _isWhitelisted(pubkey);
+    if (!whitelisted) {
+      return Response.forbidden(
+        jsonEncode({'error': 'Your npub is not whitelisted on the relay'}),
         headers: {'content-type': 'application/json'},
       );
     }
@@ -367,6 +406,32 @@ Future<Response> _handlePublish(Request request) async {
     print('Stack trace: $stackTrace');
     return Response.internalServerError(
       body: jsonEncode({'error': 'Publishing failed: $e'}),
+      headers: {'content-type': 'application/json'},
+    );
+  }
+}
+
+Future<Response> _handleWhitelist(Request request) async {
+  try {
+    final body = await request.readAsString();
+    final data = jsonDecode(body) as Map<String, dynamic>;
+    final pubkey = data['npub'] as String?; // hex pubkey expected from frontend
+
+    if (pubkey == null || pubkey.isEmpty) {
+      return Response.badRequest(
+        body: jsonEncode({'error': 'Missing npub'}),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    final whitelisted = await _isWhitelisted(pubkey);
+    return Response.ok(
+      jsonEncode({'exists': whitelisted}),
+      headers: {'content-type': 'application/json'},
+    );
+  } catch (e) {
+    return Response.internalServerError(
+      body: jsonEncode({'error': 'Whitelist check failed: $e'}),
       headers: {'content-type': 'application/json'},
     );
   }
